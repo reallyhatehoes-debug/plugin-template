@@ -1,10 +1,10 @@
 import { findByStoreName } from "@vendetta/metro";
 import { after } from "@vendetta/patcher";
 import { storage } from "@vendetta/plugin";
-import { Forms } from "@vendetta/ui/components";
 import { useProxy } from "@vendetta/storage";
+import { React, ReactNative } from "@vendetta/metro/common";
 
-const { FormSection, FormInput } = Forms;
+const { View, Text, TextInput } = ReactNative;
 const UserStore = findByStoreName("UserStore");
 
 storage.customUsername ??= "custom_user";
@@ -12,10 +12,10 @@ storage.customDisplayName ??= "Custom Display Name";
 
 let unpatchGetUser: () => boolean;
 let unpatchCurrentUser: () => boolean;
+let myId: string | undefined;
 
 function applySpoof(user: any) {
-  const currentUser = UserStore.getCurrentUser?.();
-  if (user && currentUser && user.id === currentUser.id) {
+  if (user && myId && user.id === myId) {
     if (storage.customUsername) user.username = storage.customUsername;
     if (storage.customDisplayName) user.globalName = storage.customDisplayName;
   }
@@ -24,8 +24,11 @@ function applySpoof(user: any) {
 
 export default {
   onLoad: () => {
-    unpatchGetUser = after("getUser", UserStore, (_args, res) => applySpoof(res));
-    unpatchCurrentUser = after("getCurrentUser", UserStore, (_args, res) => applySpoof(res));
+    myId = UserStore?.getCurrentUser?.()?.id;
+    if (UserStore) {
+      unpatchGetUser = after("getUser", UserStore, (_args, res) => applySpoof(res));
+      unpatchCurrentUser = after("getCurrentUser", UserStore, (_args, res) => applySpoof(res));
+    }
   },
   onUnload: () => {
     unpatchGetUser?.();
@@ -34,20 +37,40 @@ export default {
   settings: () => {
     useProxy(storage);
     return (
-      <FormSection title="Local Profile Spoofer">
-        <FormInput
-          title="Custom @Username"
+      <View style={{ padding: 16 }}>
+        <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "bold", marginBottom: 8 }}>
+          Custom @Username
+        </Text>
+        <TextInput
+          style={{
+            backgroundColor: "#1e1f22",
+            color: "#ffffff",
+            padding: 12,
+            borderRadius: 8,
+            marginBottom: 20,
+          }}
           placeholder="Enter any @username"
+          placeholderTextColor="#80848e"
           value={storage.customUsername}
-          onChange={(v: string) => (storage.customUsername = v)}
+          onChangeText={(v: string) => (storage.customUsername = v)}
         />
-        <FormInput
-          title="Custom Display Name"
+        <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "bold", marginBottom: 8 }}>
+          Custom Display Name
+        </Text>
+        <TextInput
+          style={{
+            backgroundColor: "#1e1f22",
+            color: "#ffffff",
+            padding: 12,
+            borderRadius: 8,
+          }}
           placeholder="Enter any display name"
+          placeholderTextColor="#80848e"
           value={storage.customDisplayName}
-          onChange={(v: string) => (storage.customDisplayName = v)}
+          onChangeText={(v: string) => (storage.customDisplayName = v)}
         />
-      </FormSection>
+      </View>
     );
   },
 };
+
